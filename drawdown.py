@@ -19,9 +19,12 @@ class WeavingDraft:
 	self.makeThreadingOptions(win)
 	self.makeTreadlingOptions(win)
 	self.makeTieupOptions(win)
+	#self.makeGeneralOptions(win)
 	#win2=tk.Toplevel()
 	self.makeDrawdownGUI(win)
 	self.manageLayout(win)
+
+	self.loadTieup()
 	self.drawDown()
 
 
@@ -159,7 +162,42 @@ class WeavingDraft:
 	b = tk.Button(tieupOptionsFrame, text="Inverse tieup", command=self.inverseTieup)
 	b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
+	b = tk.Button(tieupOptionsFrame, text="Save tieup", command=self.saveTieup)
+	b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+
 	self.tieupOptionsFrame = tieupOptionsFrame
+
+    def saveTieup(self):
+	filename = 'tieup.txt'
+	f = open(filename,'w')
+	f.write(str(numShafts)+'\n')
+	f.write(str(numTreadles)+'\n')
+        for shaft in range(numShafts):
+            for treadle in range(numTreadles):
+	        f.write(str(self.shaftsOnEachTreadle[treadle][shaft].get()) + ' ')
+	    f.write('\n')
+        f.close();    
+
+    def loadTieup(self):
+	filename = 'tieup.txt'
+	f = open(filename)
+        numShafts = int(f.readline().strip());
+        numTreadles = int(f.readline().strip());
+        if(not (numShafts and numTreadles) ):
+            print 'Ignoring load request because file is not appropriate'
+            
+        else:
+       	    for shaft in range(numShafts):
+                line = f.readline().strip();
+                values = line.split(' ');
+                #if(not (len(values) == numTreadles) ):
+                #    print 'Quitting load request because file doesn't add up'
+                        
+                values = map(int,values); 
+		for treadle in range(numTreadles):
+		   self.shaftsOnEachTreadle[treadle][shaft].set(values[treadle])
+        f.close();    
+
 
     def clearTieup(self):
 	
