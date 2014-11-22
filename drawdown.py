@@ -1,5 +1,5 @@
 
-numEnds = 24;
+numEnds = 40;
 numShafts = 8;
 numTreadles = 8
 t_end = 24
@@ -33,12 +33,23 @@ class WeavingDraft:
 
         threadingFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
 
+	warpColoursFrame = tk.Frame(threadingFrame,borderwidth=0)
+	warpColoursFrame.grid(row=0, columnspan=numEnds)
+	self.warpColours = []
+
 	labels = [];
 	buttons = []
 	for end in range(numEnds):
 	        endFrame = tk.Frame(threadingFrame, borderwidth=1, relief=tk.FLAT)
-		endFrame.grid(row=0, column=end)
-		label = tk.Label(endFrame, text=numEnds-end)
+		endFrame.grid(row=1, column=end)
+
+		v = tk.IntVar(win)
+		cb = tk.Checkbutton(warpColoursFrame, text="", variable=v, command=self.drawDown,padx=9, pady=0, borderwidth=1,indicatoron=0,background='black')
+		v.set(0) #default warp to black, weft to white
+		cb.grid(row=0,column=end)
+		self.warpColours.append(v)
+
+		label = tk.Label(endFrame, text=numEnds-end,fg='red')
 		label.grid(row=0,column=0)
 
 		v = tk.IntVar(win)
@@ -58,11 +69,26 @@ class WeavingDraft:
         self.treadlesAtEachTimeStep = []
 
         treadlingFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
+
+	weftColoursFrame = tk.Frame(treadlingFrame,borderwidth=0)
+	weftColoursFrame.grid(column=1, rowspan=t_end)
+	self.weftColours = []
+
 	labels = [];
 	buttons = []
 	for t in range(t_end):
 	        tFrame = tk.Frame(treadlingFrame, borderwidth=1, relief=tk.RAISED)
 		tFrame.grid(row=t, column=0)
+
+
+		#Allow for binary colour selection in weft
+		v = tk.IntVar(win)
+		cb = tk.Checkbutton(weftColoursFrame, text="", variable=v, command=self.drawDown,padx=7, pady=1, borderwidth=1,indicatoron=0,background='black',selectcolor='white')
+		v.set(1) #default weft to white, warp to black
+		cb.grid(row=t,column=0)
+		self.weftColours.append(v)
+
+
 		v = tk.IntVar(win)
 		v.set(t%numTreadles) #selected by default
 		self.treadlesAtEachTimeStep.append(v)
@@ -74,6 +100,10 @@ class WeavingDraft:
 		    rb = tk.Radiobutton(tFrame, text=label, variable=v, value=treadle,command=self.drawDown,padx=0, pady=0, borderwidth=1,indicatoron=0,width=2,selectcolor='black')	
 		    rb.grid(row=0, column=treadle)
 		    buttons.append(rb)
+
+		    label = tk.Label(tFrame, text=t,width=2,fg='red')
+		    label.grid(row=0,column=treadle+1)		
+
         self.treadlingFrame = treadlingFrame
 
     def makeTieupGUI(self,win):
@@ -108,7 +138,7 @@ class WeavingDraft:
 	self.drawdownFrame.grid(row=1, column=0, rowspan=3)
 
 	#centre column
-	self.tieupFrame.grid(row=0, column=1,sticky=tk.S)
+	self.tieupFrame.grid(row=0, column=1,sticky=tk.S+tk.W)
 	self.treadlingFrame.grid(row=1, column=1, rowspan=3)
 
 	#right column
@@ -327,19 +357,20 @@ class WeavingDraft:
 	    treadling[t,self.treadlesAtEachTimeStep[t].get()] = 1
 	
         dd=np.zeros((t_end,numEnds))
-        for t in range(t_end):      
+        for t in range(t_end): 
+	    dd[t,:] = self.weftColours[t].get() #unlifted threads show the weft's colour   
 	    treadle = treadling[t,:].tolist().index(1)
             shaftsLifted=tieup[:,treadle]
             for j in range(len(shaftsLifted)):
                 if shaftsLifted[j]==1:
                     for i in range(numEnds):
                         if threading[j,i] == 1:
-                            dd[t,i]=1
+                            dd[t,i]=self.warpColours[i].get() #lifted threads show warp's colour
 
 	self.displayDrawdown(dd)
 
     def displayDrawdown(self,drawdown):
-	drawdown=np.array(drawdown*100,dtype=int)
+	drawdown=np.array(drawdown*255,dtype=int)
 	data = np.repeat(np.repeat(drawdown, width_pick, axis=0), width_end, axis=1)
 
 	from PIL import Image, ImageTk
