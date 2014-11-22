@@ -2,13 +2,13 @@
 numEnds = 24;
 numShafts = 8;
 numTreadles = 8
-t_end = 15
+t_end = 24
 
 import Tkinter as tk
 import numpy as np
 
-width_end = 35  #pixel width of each rectangle in drawup
-width_pick = 27 #pixel height of each rectange in drawup
+width_end = 22  #pixel width of each rectangle in drawup
+width_pick = 20 #pixel height of each rectange in drawup
 
 class WeavingDraft:
     def __init__(self, win):
@@ -28,12 +28,16 @@ class WeavingDraft:
     def makeThreadingGUI(self,win):
         self.shaftsEndsAreOn = []
 
-        threadingFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
+        threadingFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
+
 	labels = [];
 	buttons = []
 	for end in range(numEnds):
-	        endFrame = tk.Frame(threadingFrame, borderwidth=3, relief=tk.RAISED)
+	        endFrame = tk.Frame(threadingFrame, borderwidth=1, relief=tk.FLAT)
 		endFrame.grid(row=0, column=end)
+		label = tk.Label(endFrame, text=numEnds-end)
+		label.grid(row=0,column=0)
+
 		v = tk.IntVar(win)
 		v.set(end%numShafts) #selected by default
 		self.shaftsEndsAreOn.append(v)
@@ -41,30 +45,30 @@ class WeavingDraft:
 		    if end == numEnds-1:
 			label = str(numShafts-shaft)
 		    else:
-			label = ""
-		    rb = tk.Radiobutton(endFrame, text=label, variable=v, value=shaft,command=self.drawDown)			
-		    rb.grid(row=shaft, column=0)
+			label = str(numShafts-shaft)#""
+		    rb = tk.Radiobutton(endFrame, text=label, variable=v, value=shaft,command=self.drawDown,padx=0, pady=0, borderwidth=1,indicatoron=0,selectcolor='black',width=2)			
+		    rb.grid(row=shaft+1, column=0)
 		    buttons.append(rb)
 	self.threadingFrame = threadingFrame
 
     def makeTreadlingGUI(self,win):
         self.treadlesAtEachTimeStep = []
 
-        treadlingFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
+        treadlingFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
 	labels = [];
 	buttons = []
 	for t in range(t_end):
-	        tFrame = tk.Frame(treadlingFrame, borderwidth=3, relief=tk.RAISED)
+	        tFrame = tk.Frame(treadlingFrame, borderwidth=1, relief=tk.RAISED)
 		tFrame.grid(row=t, column=0)
 		v = tk.IntVar(win)
 		v.set(t%numTreadles) #selected by default
 		self.treadlesAtEachTimeStep.append(v)
 		for treadle in range(numTreadles):
 		    if t == 0:
-			label = ""#str(treadle+1)
+			label = str(treadle+1)
 		    else:
-			label = ""
-		    rb = tk.Radiobutton(tFrame, text=label, variable=v, value=treadle,command=self.drawDown)			
+			label = str(treadle+1)#""
+		    rb = tk.Radiobutton(tFrame, text=label, variable=v, value=treadle,command=self.drawDown,padx=0, pady=0, borderwidth=1,indicatoron=0,width=2,selectcolor='black')	
 		    rb.grid(row=0, column=treadle)
 		    buttons.append(rb)
         self.treadlingFrame = treadlingFrame
@@ -72,18 +76,18 @@ class WeavingDraft:
     def makeTieupGUI(self,win):
         self.shaftsOnEachTreadle = []
 
-        tieupFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
+        tieupFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
 	labels = [];
 	buttons = []
 	for treadle in range(numTreadles):
-	        treadleFrame = tk.Frame(tieupFrame, borderwidth=3, relief=tk.RAISED)
+	        treadleFrame = tk.Frame(tieupFrame, borderwidth=1, relief=tk.RAISED)
 		treadleFrame.grid(row=0, column=treadle)
 		
 		vars=[]
 		self.shaftsOnEachTreadle.append(vars)
 		for shaft in range(numShafts):
 		    v = tk.IntVar(win)
-		    rb = tk.Checkbutton(treadleFrame, text="", variable=v, command=self.drawDown)			
+		    rb = tk.Checkbutton(treadleFrame, text="", variable=v, command=self.drawDown,padx=7, pady=0, borderwidth=1,indicatoron=0,selectcolor='black')	
 		    rb.grid(row=shaft, column=0)
 		    buttons.append(rb)
 		    vars.append(v)
@@ -98,18 +102,50 @@ class WeavingDraft:
 	#put frames in a grid
 	#left column
 	self.threadingFrame.grid(row=0, column=0)
-	self.drawdownFrame.grid(row=1, column=0, rowspan=2)
+	self.drawdownFrame.grid(row=1, column=0, rowspan=3)
 
 	#centre column
-	self.tieupFrame.grid(row=0, column=1)
-	self.treadlingFrame.grid(row=1, column=1, rowspan=2)
+	self.tieupFrame.grid(row=0, column=1,sticky=tk.S)
+	self.treadlingFrame.grid(row=1, column=1, rowspan=3)
 
 	#right column
 	self.threadingOptionsFrame.grid(row=0,column=2)
 	self.tieupOptionsFrame.grid(row=1, column=2)
 	self.treadlingOptionsFrame.grid(row=2,column=2)
+	#self.generalOptionsFrame.grid(row=3, column=2)
+
+    def makeGeneralOptions(self,win):
+	generalOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
+
+	label = tk.Label(generalOptionsFrame, text="# ends")
+	label.grid(row=0,column=0)
+
+	self.var_numEnds = tk.StringVar(win)
+	e = tk.Entry(generalOptionsFrame, textvariable=self.var_numEnds)
+	e.grid(row=0,column=1)
+	
+	self.var_numEnds.set("15")
+
+	b = tk.Button(generalOptionsFrame, text="Update", command=self.updateGeneralOptions)
+	b.grid(row=1,column=0,columnspan=2)
 
 
+	self.generalOptionsFrame = generalOptionsFrame
+
+    def updateGeneralOptions(self):
+	numEnds = self.var_numEnds.get()
+	print(numEnds)
+	'''
+	self.updateThreadingGUI(win)
+	self.makeTreadlingGUI(win)
+	self.makeTieupGUI(win)
+	self.makeThreadingOptions(win)
+	self.makeTreadlingOptions(win)
+	self.makeTieupOptions(win)
+	self.makeGeneralOptions(win)
+	self.makeDrawdownGUI(win)
+	#self.drawDown()
+	'''
 
     def makeTieupOptions(self,win):
 	tieupOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
@@ -126,22 +162,23 @@ class WeavingDraft:
 	self.tieupOptionsFrame = tieupOptionsFrame
 
     def clearTieup(self):
+	
         for treadle in range(numTreadles):
 	    for shaft in range(numShafts):
-                self.shaftsOnEachTreadle[shaft][treadle].set(0)
+                self.shaftsOnEachTreadle[treadle][shaft].set(0)
 	self.drawDown()
 
     def fillTieup(self):
         for treadle in range(numTreadles):
 	    for shaft in range(numShafts):
-                self.shaftsOnEachTreadle[shaft][treadle].set(1)
+                self.shaftsOnEachTreadle[treadle][shaft].set(1)
 	self.drawDown()
 
     def inverseTieup(self):
         for treadle in range(numTreadles):
 	    for shaft in range(numShafts):
-		currentVal = self.shaftsOnEachTreadle[shaft][treadle].get()
-                self.shaftsOnEachTreadle[shaft][treadle].set(1-currentVal)
+		currentVal = self.shaftsOnEachTreadle[treadle][shaft].get()
+                self.shaftsOnEachTreadle[treadle][shaft].set(1-currentVal)
 	self.drawDown()
 
 
@@ -247,7 +284,7 @@ class WeavingDraft:
 	    for shaft in range(numShafts):
                 tieup[shaft,treadle] = self.shaftsOnEachTreadle[treadle][shaft].get()
 
-	treadling = np.zeros((t_end, numShafts))
+	treadling = np.zeros((t_end, numTreadles))
 	for t in range(t_end):
 	    treadling[t,self.treadlesAtEachTimeStep[t].get()] = 1
 	
