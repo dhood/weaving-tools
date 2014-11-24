@@ -1,6 +1,7 @@
 
 
 import Tkinter as tk
+import tkFileDialog
 import numpy as np
 
 width_end = 22   # pixel width of each rectangle in drawup
@@ -8,16 +9,18 @@ width_pick = 20  # pixel height of each rectange in drawup
 
 
 class WeavingDraft:
-    def __init__(self, win):
+    def __init__(self, win, numEnds, numShafts, numTreadles, t_end):
+        self.win = win
+
         self.threadingFrame = None
         self.treadlingFrame = None
         self.tieupFrame = None
 	self.drawdownFrame = None
 
-        self.numEnds = 40
-        self.numShafts = 8
-        self.numTreadles = 8
-        self.t_end = 24
+        self.numEnds = numEnds
+        self.numShafts = numShafts
+        self.numTreadles = numTreadles
+        self.t_end = t_end
 
         self.makeThreadingGUI(win)
         self.makeTreadlingGUI(win)
@@ -26,11 +29,11 @@ class WeavingDraft:
         self.makeTreadlingOptions(win)
         self.makeTieupOptions(win)
         self.makeGeneralOptions(win)
-        #win2=tk.Toplevel()
         self.makeDrawdownGUI(win)
+
         self.manageLayout(win)
 
-        self.loadTieup()
+        self.loadDraft()
         self.drawDown()
 
 
@@ -185,7 +188,7 @@ class WeavingDraft:
         label = tk.Label(generalOptionsFrame, text="# ends", width=0)
         label.grid(row=0,column=0)
         self.var_numEnds = tk.StringVar(win)
-        e = tk.Entry(generalOptionsFrame, textvariable=self.var_numEnds, width=0)
+        e = tk.Entry(generalOptionsFrame, textvariable=self.var_numEnds, width=3)
         e.grid(row=0,column=1)
         self.var_numEnds.set(str(self.numEnds))
 
@@ -193,7 +196,7 @@ class WeavingDraft:
         label = tk.Label(generalOptionsFrame, text="# shafts", width=0)
         label.grid(row=1,column=0)
         self.var_numShafts = tk.StringVar(win)
-        e = tk.Entry(generalOptionsFrame, textvariable=self.var_numShafts, width=0)
+        e = tk.Entry(generalOptionsFrame, textvariable=self.var_numShafts, width=3)
         e.grid(row=1,column=1)
         self.var_numShafts.set(str(self.numShafts))
 
@@ -201,7 +204,7 @@ class WeavingDraft:
         label = tk.Label(generalOptionsFrame, text="# treadles", width=0)
         label.grid(row=2,column=0)
         self.var_numTreadles = tk.StringVar(win)
-        e = tk.Entry(generalOptionsFrame, textvariable=self.var_numTreadles, width=0)
+        e = tk.Entry(generalOptionsFrame, textvariable=self.var_numTreadles, width=3)
         e.grid(row=2,column=1)
         self.var_numTreadles.set(str(self.numTreadles))
 
@@ -209,7 +212,7 @@ class WeavingDraft:
         label = tk.Label(generalOptionsFrame, text="# picks", width=0)
         label.grid(row=3,column=0)
         self.var_t_end = tk.StringVar(win)
-        e = tk.Entry(generalOptionsFrame, textvariable=self.var_t_end, width=0)
+        e = tk.Entry(generalOptionsFrame, textvariable=self.var_t_end, width=3)
         e.grid(row=3,column=1)
         self.var_t_end.set(str(self.t_end))
 
@@ -225,10 +228,10 @@ class WeavingDraft:
         self.numTreadles = int(self.var_numTreadles.get())
         self.t_end = int(self.var_t_end.get())
         
-        self.makeThreadingGUI(win)
-	self.makeTreadlingGUI(win)
-        self.makeTieupGUI(win)
-        self.makeDrawdownGUI(win)
+        self.makeThreadingGUI(self.win)
+	self.makeTreadlingGUI(self.win)
+        self.makeTieupGUI(self.win)
+        self.makeDrawdownGUI(self.win)
         self.drawDown()
         
     def makeTieupOptions(self,win):
@@ -243,42 +246,124 @@ class WeavingDraft:
         b = tk.Button(tieupOptionsFrame, text="Inverse tieup", command=self.inverseTieup)
         b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
-        b = tk.Button(tieupOptionsFrame, text="Save tieup", command=self.saveTieup)
+        b = tk.Button(tieupOptionsFrame, text="Save draft", command=self.saveDraft)
+        b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+
+        b = tk.Button(tieupOptionsFrame, text="Load draft", command=self.loadDraft)
         b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
         self.tieupOptionsFrame = tieupOptionsFrame
 
-    def saveTieup(self):
-        filename = 'tieup.txt'
-        f = open(filename,'w')
+    def saveDraft(self):
+        f = tkFileDialog.asksaveasfile(defaultextension=".txt")
+        if f is None: # asksaveasfile return `None` if dialog closed with "cancel".
+            return
+
+        # write dimensions
+        f.write(str(self.numEnds)+'\n')
         f.write(str(self.numShafts)+'\n')
         f.write(str(self.numTreadles)+'\n')
+        f.write(str(self.t_end)+'\n')
+
+        # write threading
+        for end in range(self.numEnds):
+            f.write(str(self.shaftsEndsAreOn[end].get()) + ' ')
+        f.write('\n')
+
+        # write warp colours
+        for end in range(self.numEnds):
+            f.write(str(self.warpColours[end].get()) + ' ')
+        f.write('\n')
+
+        # write tieup
         for shaft in range(self.numShafts):
             for treadle in range(self.numTreadles):
                 f.write(str(self.shaftsOnEachTreadle[treadle][shaft].get()) + ' ')
             f.write('\n')
+
+        # write treadling
+        for t in range(self.t_end):
+            f.write(str(self.treadlesAtEachTimeStep[t].get()) + ' ')
+        f.write('\n')
+
+        # write weft colours
+        for t in range(self.t_end):
+            f.write(str(self.weftColours[t].get()) + ' ')
+        f.write('\n')
+
         f.close();
 
-    def loadTieup(self):
-        filename = 'tieup.txt'
-        f = open(filename)
-        self.numShafts = int(f.readline().strip());
-        self.numTreadles = int(f.readline().strip());
-        if(not (self.numShafts and self.numTreadles) ):
-            print 'Ignoring load request because file is not appropriate'
+    def loadDraft(self):
+        f = tkFileDialog.askopenfile(defaultextension=".txt")
+        if f is None:
+            return
 
-        else:
-            for shaft in range(self.numShafts):
+        try:
+        
+            # read dimensions
+            self.numEnds = int(f.readline().strip())
+            self.numShafts = int(f.readline().strip())
+            self.numTreadles = int(f.readline().strip())
+            self.t_end = int(f.readline().strip())
+	
+            if(not (self.numEnds and self.numShafts and self.numTreadles and self.t_end) ):
+                print 'Ignoring load request because file is not appropriate'
+                return
+
+            else:
+                # update sizes of GUIs/vars
+                self.makeThreadingGUI(self.win)
+                self.makeTreadlingGUI(self.win)
+                self.makeTieupGUI(self.win)
+                self.makeDrawdownGUI(self.win)
+
+                # read threading
                 line = f.readline().strip();
                 values = line.split(' ');
-                #if(not (len(values) == self.numTreadles) ):
-                #    print 'Quitting load request because file doesn't add up'
-
                 values = map(int,values);
-                for treadle in range(self.numTreadles):
-                   self.shaftsOnEachTreadle[treadle][shaft].set(values[treadle])
-        f.close();
+                for end in range(self.numEnds):
+                    self.shaftsEndsAreOn[end].set(values[end])
 
+                # read warp colours
+                line = f.readline().strip();
+                values = line.split(' ');
+                values = map(int,values);
+                for end in range(self.numEnds):
+                    self.warpColours[end].set(values[end])
+  
+                # read tieup
+                for shaft in range(self.numShafts):
+                    line = f.readline().strip();
+                    values = line.split(' ');
+                    values = map(int,values);
+                    for treadle in range(self.numTreadles):
+                       self.shaftsOnEachTreadle[treadle][shaft].set(values[treadle])
+ 
+                # read treadling
+                line = f.readline().strip();
+                values = line.split(' ');
+                values = map(int,values);
+                for t in range(self.t_end):
+                    self.treadlesAtEachTimeStep[t].set(values[t])
+  
+                # read weft colours
+                line = f.readline().strip();
+                values = line.split(' ');
+                values = map(int,values);
+                for t in range(self.t_end):
+                    self.weftColours[t].set(values[t])
+  
+            f.close();
+
+
+            self.var_numEnds.set(numEnds)
+            self.var_numShafts.set(numShafts)
+            self.var_numTreadles.set(numTreadles)
+            self.var_t_end.set(t_end)
+            self.drawDown()
+
+        except:
+            print('Draft not read properly')
 
     def clearTieup(self):
 
@@ -436,7 +521,10 @@ class WeavingDraft:
 
 
 mw = tk.Tk()
-win=mw
-app = WeavingDraft(mw)
+numEnds = 20
+numShafts = 4
+numTreadles = 10
+t_end = 20
+app = WeavingDraft(mw, numEnds, numShafts, numTreadles, t_end)
 mw.mainloop()
 
