@@ -1,383 +1,434 @@
 
-numEnds = 40;
-numShafts = 8;
-numTreadles = 8
-t_end = 24
 
 import Tkinter as tk
 import numpy as np
 
-width_end = 22  #pixel width of each rectangle in drawup
-width_pick = 20 #pixel height of each rectange in drawup
+width_end = 22   # pixel width of each rectangle in drawup
+width_pick = 20  # pixel height of each rectange in drawup
+
 
 class WeavingDraft:
     def __init__(self, win):
+        self.threadingFrame = None
+        self.treadlingFrame = None
+        self.tieupFrame = None
+	self.drawdownFrame = None
 
-	self.makeThreadingGUI(win)
-	self.makeTreadlingGUI(win)
-	self.makeTieupGUI(win)
-	self.makeThreadingOptions(win)
-	self.makeTreadlingOptions(win)
-	self.makeTieupOptions(win)
-	#self.makeGeneralOptions(win)
-	#win2=tk.Toplevel()
-	self.makeDrawdownGUI(win)
-	self.manageLayout(win)
+        self.numEnds = 40
+        self.numShafts = 8
+        self.numTreadles = 8
+        self.t_end = 24
 
-	self.loadTieup()
-	self.drawDown()
+        self.makeThreadingGUI(win)
+        self.makeTreadlingGUI(win)
+        self.makeTieupGUI(win)
+        self.makeThreadingOptions(win)
+        self.makeTreadlingOptions(win)
+        self.makeTieupOptions(win)
+        self.makeGeneralOptions(win)
+        #win2=tk.Toplevel()
+        self.makeDrawdownGUI(win)
+        self.manageLayout(win)
+
+        self.loadTieup()
+        self.drawDown()
 
 
     def makeThreadingGUI(self,win):
         self.shaftsEndsAreOn = []
 
-        threadingFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
+	if self.threadingFrame is None:
+            self.threadingFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
+        else:
+            for i in range(len(self.threadingFrame.winfo_children())):
+                self.threadingFrame.winfo_children()[0].destroy()
+            
+        warpColoursFrame = tk.Frame(self.threadingFrame,borderwidth=0)
+        warpColoursFrame.grid(row=0, columnspan=self.numEnds)
+        self.warpColours = []
 
-	warpColoursFrame = tk.Frame(threadingFrame,borderwidth=0)
-	warpColoursFrame.grid(row=0, columnspan=numEnds)
-	self.warpColours = []
 
-	labels = [];
-	buttons = []
-	for end in range(numEnds):
-	        endFrame = tk.Frame(threadingFrame, borderwidth=1, relief=tk.FLAT)
-		endFrame.grid(row=1, column=end)
+        buttons = []
+        for end in range(self.numEnds):
+                endFrame = tk.Frame(self.threadingFrame, borderwidth=1, relief=tk.FLAT)
+                endFrame.grid(row=1, column=end)
 
-		v = tk.IntVar(win)
-		cb = tk.Checkbutton(warpColoursFrame, text="", variable=v, command=self.drawDown,padx=9, pady=0, borderwidth=1,indicatoron=0,background='black')
-		v.set(0) #default warp to black, weft to white
-		cb.grid(row=0,column=end)
-		self.warpColours.append(v)
+                v = tk.IntVar(win)
+                cb = tk.Checkbutton(warpColoursFrame, text="", variable=v, \
+                    command=self.drawDown, padx=9, pady=0, borderwidth=1, \
+                    indicatoron=0,background='black')
+                v.set(0) #default warp to black, weft to white
+                cb.grid(row=0,column=end)
+                self.warpColours.append(v)
 
-		label = tk.Label(endFrame, text=numEnds-end,fg='red')
-		label.grid(row=0,column=0)
+                label = tk.Label(endFrame, text=self.numEnds-end,fg='red')
+                label.grid(row=0,column=0)
 
-		v = tk.IntVar(win)
-		v.set(end%numShafts) #selected by default
-		self.shaftsEndsAreOn.append(v)
-		for shaft in range(numShafts):
-		    if end == numEnds-1:
-			label = str(numShafts-shaft)
-		    else:
-			label = str(numShafts-shaft)#""
-		    rb = tk.Radiobutton(endFrame, text=label, variable=v, value=shaft,command=self.drawDown,padx=0, pady=0, borderwidth=1,indicatoron=0,selectcolor='black',width=2)			
-		    rb.grid(row=shaft+1, column=0)
-		    buttons.append(rb)
-	self.threadingFrame = threadingFrame
+                v = tk.IntVar(win)
+                v.set(end%self.numShafts) #selected by default
+                self.shaftsEndsAreOn.append(v)
+                for shaft in range(self.numShafts):
+                    if end == self.numEnds-1:
+                        label = str(self.numShafts-shaft)
+                    else:
+                        label = str(self.numShafts-shaft)#""
+                    rb = tk.Radiobutton(endFrame, text=label, variable=v, \
+                        value=shaft, command=self.drawDown, padx=0, pady=0, \
+                        borderwidth=1, indicatoron=0,selectcolor='black',width=2)
+                    rb.grid(row=shaft+1, column=0)
+                    buttons.append(rb)
+
 
     def makeTreadlingGUI(self,win):
         self.treadlesAtEachTimeStep = []
 
-        treadlingFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
+	if self.treadlingFrame is None:
+            self.treadlingFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
+        else:
+            for i in range(len(self.treadlingFrame.winfo_children())):
+                self.treadlingFrame.winfo_children()[0].destroy()
 
-	weftColoursFrame = tk.Frame(treadlingFrame,borderwidth=0)
-	weftColoursFrame.grid(column=1, rowspan=t_end)
-	self.weftColours = []
+        weftColoursFrame = tk.Frame(self.treadlingFrame, borderwidth=0)
+        weftColoursFrame.grid(column=1, rowspan=self.t_end)
+        self.weftColours = []
 
-	labels = [];
-	buttons = []
-	for t in range(t_end):
-	        tFrame = tk.Frame(treadlingFrame, borderwidth=1, relief=tk.RAISED)
-		tFrame.grid(row=t, column=0)
-
-
-		#Allow for binary colour selection in weft
-		v = tk.IntVar(win)
-		cb = tk.Checkbutton(weftColoursFrame, text="", variable=v, command=self.drawDown,padx=7, pady=1, borderwidth=1,indicatoron=0,background='black',selectcolor='white')
-		v.set(1) #default weft to white, warp to black
-		cb.grid(row=t,column=0)
-		self.weftColours.append(v)
+        labels = [];
+        buttons = []
+        for t in range(self.t_end):
+                tFrame = tk.Frame(self.treadlingFrame, borderwidth=1, relief=tk.RAISED)
+                tFrame.grid(row=t, column=0)
 
 
-		v = tk.IntVar(win)
-		v.set(t%numTreadles) #selected by default
-		self.treadlesAtEachTimeStep.append(v)
-		for treadle in range(numTreadles):
-		    if t == 0:
-			label = str(treadle+1)
-		    else:
-			label = str(treadle+1)#""
-		    rb = tk.Radiobutton(tFrame, text=label, variable=v, value=treadle,command=self.drawDown,padx=0, pady=0, borderwidth=1,indicatoron=0,width=2,selectcolor='black')	
-		    rb.grid(row=0, column=treadle)
-		    buttons.append(rb)
+                #Allow for binary colour selection in weft
+                v = tk.IntVar(win)
+                cb = tk.Checkbutton(weftColoursFrame, text="", variable=v, \
+                    command=self.drawDown, padx=7, pady=1, borderwidth=1, \
+                    indicatoron=0, background='black', selectcolor='white')
+                v.set(1) #default weft to white, warp to black
+                cb.grid(row=t,column=0)
+                self.weftColours.append(v)
 
-		    label = tk.Label(tFrame, text=t,width=2,fg='red')
-		    label.grid(row=0,column=treadle+1)		
 
-        self.treadlingFrame = treadlingFrame
+                v = tk.IntVar(win)
+                v.set(t%self.numTreadles) #selected by default
+                self.treadlesAtEachTimeStep.append(v)
+                for treadle in range(self.numTreadles):
+                    if t == 0:
+                        label = str(treadle+1)
+                    else:
+                        label = str(treadle+1)#""
+                    rb = tk.Radiobutton(tFrame, text=label, variable=v, \
+                        value=treadle, command=self.drawDown, padx=0, pady=0, \
+                        borderwidth=1,indicatoron=0,width=2,selectcolor='black')
+                    rb.grid(row=0, column=treadle)
+                    buttons.append(rb)
+
+                    label = tk.Label(tFrame, text=t+1, width=2, fg='red')
+                    label.grid(row=0,column=treadle+1)
+
 
     def makeTieupGUI(self,win):
         self.shaftsOnEachTreadle = []
 
-        tieupFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
-	labels = [];
-	buttons = []
-	for treadle in range(numTreadles):
-	        treadleFrame = tk.Frame(tieupFrame, borderwidth=1, relief=tk.RAISED)
-		treadleFrame.grid(row=0, column=treadle)
-		
-		vars=[]
-		self.shaftsOnEachTreadle.append(vars)
-		for shaft in range(numShafts):
-		    v = tk.IntVar(win)
-		    rb = tk.Checkbutton(treadleFrame, text="", variable=v, command=self.drawDown,padx=7, pady=0, borderwidth=1,indicatoron=0,selectcolor='black')	
-		    rb.grid(row=shaft, column=0)
-		    buttons.append(rb)
-		    vars.append(v)
-        self.tieupFrame = tieupFrame
+	if self.tieupFrame is None:
+            self.tieupFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
+        else:
+            for i in range(len(self.tieupFrame.winfo_children())):
+                self.tieupFrame.winfo_children()[0].destroy()
+
+        labels = [];
+        buttons = []
+        for treadle in range(self.numTreadles):
+                treadleFrame = tk.Frame(self.tieupFrame, borderwidth=1, relief=tk.RAISED)
+                treadleFrame.grid(row=0, column=treadle)
+
+                vars=[]
+                self.shaftsOnEachTreadle.append(vars)
+                for shaft in range(self.numShafts):
+                    v = tk.IntVar(win)
+                    rb = tk.Checkbutton(treadleFrame, text="", variable=v, \
+                        command=self.drawDown, padx=7, pady=0, borderwidth=1, \
+                        indicatoron=0, selectcolor='black')
+                    rb.grid(row=shaft, column=0)
+                    buttons.append(rb)
+                    vars.append(v)
 
     def makeDrawdownGUI(self, win):
-	drawdownFrame = tk.Frame(win, width=numEnds*width_end, height=t_end*width_pick)
-        drawdownFrame.pack()
-	self.drawdownFrame = drawdownFrame
+	if self.drawdownFrame is None:
+            self.drawdownFrame = tk.Frame(win, width=self.numEnds*width_end, height=self.t_end*width_pick)
+            self.drawdownFrame.pack()
+        else:
+            for i in range(len(self.drawdownFrame.winfo_children())):
+                self.drawdownFrame.winfo_children()[0].destroy()
+            self.drawdownFrame.config(width=self.numEnds*width_end, height=self.t_end*width_pick)
 
     def manageLayout(self, win):
-	#put frames in a grid
-	#left column
-	self.threadingFrame.grid(row=0, column=0)
-	self.drawdownFrame.grid(row=1, column=0, rowspan=3)
+        #put frames in a grid
+        #left column
+        self.threadingFrame.grid(row=0, column=0)
+        self.drawdownFrame.grid(row=1, column=0, rowspan=3)
 
-	#centre column
-	self.tieupFrame.grid(row=0, column=1,sticky=tk.S+tk.W)
-	self.treadlingFrame.grid(row=1, column=1, rowspan=3)
+        #centre column
+        self.tieupFrame.grid(row=0, column=1,sticky=tk.S+tk.W)
+        self.treadlingFrame.grid(row=1, column=1, rowspan=3)
 
-	#right column
-	self.threadingOptionsFrame.grid(row=0,column=2)
-	self.tieupOptionsFrame.grid(row=1, column=2)
-	self.treadlingOptionsFrame.grid(row=2,column=2)
-	#self.generalOptionsFrame.grid(row=3, column=2)
+        #right column
+        self.threadingOptionsFrame.grid(row=0,column=2)
+        self.tieupOptionsFrame.grid(row=1, column=2)
+        self.treadlingOptionsFrame.grid(row=2,column=2)
+        self.generalOptionsFrame.grid(row=3, column=2)
 
     def makeGeneralOptions(self,win):
-	generalOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
+        generalOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED, width=0)
 
-	label = tk.Label(generalOptionsFrame, text="# ends")
-	label.grid(row=0,column=0)
+	# ends
+        label = tk.Label(generalOptionsFrame, text="# ends", width=0)
+        label.grid(row=0,column=0)
+        self.var_numEnds = tk.StringVar(win)
+        e = tk.Entry(generalOptionsFrame, textvariable=self.var_numEnds, width=0)
+        e.grid(row=0,column=1)
+        self.var_numEnds.set(str(self.numEnds))
 
-	self.var_numEnds = tk.StringVar(win)
-	e = tk.Entry(generalOptionsFrame, textvariable=self.var_numEnds)
-	e.grid(row=0,column=1)
-	
-	self.var_numEnds.set("15")
+        # shafts
+        label = tk.Label(generalOptionsFrame, text="# shafts", width=0)
+        label.grid(row=1,column=0)
+        self.var_numShafts = tk.StringVar(win)
+        e = tk.Entry(generalOptionsFrame, textvariable=self.var_numShafts, width=0)
+        e.grid(row=1,column=1)
+        self.var_numShafts.set(str(self.numShafts))
 
-	b = tk.Button(generalOptionsFrame, text="Update", command=self.updateGeneralOptions)
-	b.grid(row=1,column=0,columnspan=2)
+        # treadles
+        label = tk.Label(generalOptionsFrame, text="# treadles", width=0)
+        label.grid(row=2,column=0)
+        self.var_numTreadles = tk.StringVar(win)
+        e = tk.Entry(generalOptionsFrame, textvariable=self.var_numTreadles, width=0)
+        e.grid(row=2,column=1)
+        self.var_numTreadles.set(str(self.numTreadles))
+
+	# time
+        label = tk.Label(generalOptionsFrame, text="# picks", width=0)
+        label.grid(row=3,column=0)
+        self.var_t_end = tk.StringVar(win)
+        e = tk.Entry(generalOptionsFrame, textvariable=self.var_t_end, width=0)
+        e.grid(row=3,column=1)
+        self.var_t_end.set(str(self.t_end))
+
+        b = tk.Button(generalOptionsFrame, text="Update", command=self.updateGeneralOptions, width=0)
+        b.grid(row=4,column=0,columnspan=2)
 
 
-	self.generalOptionsFrame = generalOptionsFrame
+        self.generalOptionsFrame = generalOptionsFrame
 
     def updateGeneralOptions(self):
-	numEnds = self.var_numEnds.get()
-	print(numEnds)
-	'''
-	self.updateThreadingGUI(win)
+        self.numEnds = int(self.var_numEnds.get())
+        self.numShafts = int(self.var_numShafts.get())
+        self.numTreadles = int(self.var_numTreadles.get())
+        self.t_end = int(self.var_t_end.get())
+        
+        self.makeThreadingGUI(win)
 	self.makeTreadlingGUI(win)
-	self.makeTieupGUI(win)
-	self.makeThreadingOptions(win)
-	self.makeTreadlingOptions(win)
-	self.makeTieupOptions(win)
-	self.makeGeneralOptions(win)
-	self.makeDrawdownGUI(win)
-	#self.drawDown()
-	'''
-
+        self.makeTieupGUI(win)
+        self.makeDrawdownGUI(win)
+        self.drawDown()
+        
     def makeTieupOptions(self,win):
-	tieupOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
+        tieupOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
 
-	b = tk.Button(tieupOptionsFrame, text="Clear tieup", command=self.clearTieup)
-	b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+        b = tk.Button(tieupOptionsFrame, text="Clear tieup", command=self.clearTieup)
+        b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
-	b = tk.Button(tieupOptionsFrame, text="Fill tieup", command=self.fillTieup)
-	b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+        b = tk.Button(tieupOptionsFrame, text="Fill tieup", command=self.fillTieup)
+        b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
-	b = tk.Button(tieupOptionsFrame, text="Inverse tieup", command=self.inverseTieup)
-	b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+        b = tk.Button(tieupOptionsFrame, text="Inverse tieup", command=self.inverseTieup)
+        b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
-	b = tk.Button(tieupOptionsFrame, text="Save tieup", command=self.saveTieup)
-	b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+        b = tk.Button(tieupOptionsFrame, text="Save tieup", command=self.saveTieup)
+        b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
-	self.tieupOptionsFrame = tieupOptionsFrame
+        self.tieupOptionsFrame = tieupOptionsFrame
 
     def saveTieup(self):
-	filename = 'tieup.txt'
-	f = open(filename,'w')
-	f.write(str(numShafts)+'\n')
-	f.write(str(numTreadles)+'\n')
-        for shaft in range(numShafts):
-            for treadle in range(numTreadles):
-	        f.write(str(self.shaftsOnEachTreadle[treadle][shaft].get()) + ' ')
-	    f.write('\n')
-        f.close();    
+        filename = 'tieup.txt'
+        f = open(filename,'w')
+        f.write(str(self.numShafts)+'\n')
+        f.write(str(self.numTreadles)+'\n')
+        for shaft in range(self.numShafts):
+            for treadle in range(self.numTreadles):
+                f.write(str(self.shaftsOnEachTreadle[treadle][shaft].get()) + ' ')
+            f.write('\n')
+        f.close();
 
     def loadTieup(self):
-	filename = 'tieup.txt'
-	f = open(filename)
-        numShafts = int(f.readline().strip());
-        numTreadles = int(f.readline().strip());
-        if(not (numShafts and numTreadles) ):
+        filename = 'tieup.txt'
+        f = open(filename)
+        self.numShafts = int(f.readline().strip());
+        self.numTreadles = int(f.readline().strip());
+        if(not (self.numShafts and self.numTreadles) ):
             print 'Ignoring load request because file is not appropriate'
-            
+
         else:
-       	    for shaft in range(numShafts):
+            for shaft in range(self.numShafts):
                 line = f.readline().strip();
                 values = line.split(' ');
-                #if(not (len(values) == numTreadles) ):
+                #if(not (len(values) == self.numTreadles) ):
                 #    print 'Quitting load request because file doesn't add up'
-                        
-                values = map(int,values); 
-		for treadle in range(numTreadles):
-		   self.shaftsOnEachTreadle[treadle][shaft].set(values[treadle])
-        f.close();    
+
+                values = map(int,values);
+                for treadle in range(self.numTreadles):
+                   self.shaftsOnEachTreadle[treadle][shaft].set(values[treadle])
+        f.close();
 
 
     def clearTieup(self):
-	
-        for treadle in range(numTreadles):
-	    for shaft in range(numShafts):
+
+        for treadle in range(self.numTreadles):
+            for shaft in range(self.numShafts):
                 self.shaftsOnEachTreadle[treadle][shaft].set(0)
-	self.drawDown()
+        self.drawDown()
 
     def fillTieup(self):
-        for treadle in range(numTreadles):
-	    for shaft in range(numShafts):
+        for treadle in range(self.numTreadles):
+            for shaft in range(self.numShafts):
                 self.shaftsOnEachTreadle[treadle][shaft].set(1)
-	self.drawDown()
+        self.drawDown()
 
     def inverseTieup(self):
-        for treadle in range(numTreadles):
-	    for shaft in range(numShafts):
-		currentVal = self.shaftsOnEachTreadle[treadle][shaft].get()
+        for treadle in range(self.numTreadles):
+            for shaft in range(self.numShafts):
+                currentVal = self.shaftsOnEachTreadle[treadle][shaft].get()
                 self.shaftsOnEachTreadle[treadle][shaft].set(1-currentVal)
-	self.drawDown()
+        self.drawDown()
 
 
 
     def makeThreadingOptions(self,win):
-	threadingOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
+        threadingOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
 
         b = tk.Button(threadingOptionsFrame, text="Pointed threading", command=self.pointedThreading)
         b.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-	b = tk.Button(threadingOptionsFrame, text="Straight threading", command=self.straightThreading)
+        b = tk.Button(threadingOptionsFrame, text="Straight threading", command=self.straightThreading)
         b.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-	b = tk.Button(threadingOptionsFrame, text="Inverse threading", command=self.inverseThreading)
+        b = tk.Button(threadingOptionsFrame, text="Inverse threading", command=self.inverseThreading)
         b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
-	self.threadingOptionsFrame = threadingOptionsFrame
+        self.threadingOptionsFrame = threadingOptionsFrame
 
     def pointedThreading(self):
-	direction = 1; #initially incrementing shafts
-	shaft = 0; #start closest to weaver
+        direction = 1; #initially incrementing shafts
+        shaft = 0; #start closest to weaver
 
-	for end in reversed(range(numEnds)): #start at right hand side
-	    self.shaftsEndsAreOn[end].set(numShafts-1-shaft) #update radio button
-	    if direction == 1:
-		shaft += 1
-                if shaft > numShafts-1: #reached upper point - switch directions
-		    shaft = numShafts - 2
-		    direction = 0
-	    else:
-		shaft -= 1
-		if shaft < 0: #reached lower point - switch directions
-		    shaft = 1
-		    direction = 1
-	self.drawDown()
+        for end in reversed(range(self.numEnds)): #start at right hand side
+            self.shaftsEndsAreOn[end].set(self.numShafts-1-shaft) #update radio button
+            if direction == 1:
+                shaft += 1
+                if shaft > self.numShafts-1: #reached upper point - switch directions
+                    shaft = self.numShafts - 2
+                    direction = 0
+            else:
+                shaft -= 1
+                if shaft < 0: #reached lower point - switch directions
+                    shaft = 1
+                    direction = 1
+        self.drawDown()
 
     def straightThreading(self):
-	for end in range(numEnds):
-	    self.shaftsEndsAreOn[end].set(numShafts-1-((numEnds-1-end)%numShafts)) #update radio button
-	self.drawDown()
+        for end in range(self.numEnds):
+            self.shaftsEndsAreOn[end].set(self.numShafts-1-((self.numEnds-1-end)%self.numShafts)) #update radio button
+        self.drawDown()
 
     def inverseThreading(self):
-	for end in range(numEnds):
-	    currentShaft = self.shaftsEndsAreOn[end].get()	
-	    self.shaftsEndsAreOn[end].set(numShafts-1-currentShaft) #update radio button
-	self.drawDown()
+        for end in range(self.numEnds):
+            currentShaft = self.shaftsEndsAreOn[end].get()
+            self.shaftsEndsAreOn[end].set(self.numShafts-1-currentShaft) #update radio button
+        self.drawDown()
 
 
 
     def makeTreadlingOptions(self,win):
-	treadlingOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
+        treadlingOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
 
         b = tk.Button(treadlingOptionsFrame, text="Pointed treadling", command=self.pointedTreadling)
         b.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-	b = tk.Button(treadlingOptionsFrame, text="Straight treadling", command=self.straightTreadling)
+        b = tk.Button(treadlingOptionsFrame, text="Straight treadling", command=self.straightTreadling)
         b.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-	b = tk.Button(treadlingOptionsFrame, text="Inverse treadling", command=self.inverseTreadling)
+        b = tk.Button(treadlingOptionsFrame, text="Inverse treadling", command=self.inverseTreadling)
         b.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
-	self.treadlingOptionsFrame = treadlingOptionsFrame
+        self.treadlingOptionsFrame = treadlingOptionsFrame
 
     def pointedTreadling(self):
-	direction = 1; #initially incrementing treadles
-	treadle = 0;
+        direction = 1; #initially incrementing treadles
+        treadle = 0;
 
-	for t in range(t_end): 
-	    self.treadlesAtEachTimeStep[t].set(treadle) #update radio button
-	    if direction == 1:
-		treadle += 1
-                if treadle > numTreadles - 1: #reached upper point - switch directions
-		    treadle = numTreadles - 2
-		    direction = 0
-	    else:
-		treadle -= 1
-		if treadle < 0: #reached lower point - switch directions
-		    treadle = 1
-		    direction = 1
-	self.drawDown()
+        for t in range(self.t_end):
+            self.treadlesAtEachTimeStep[t].set(treadle) #update radio button
+            if direction == 1:
+                treadle += 1
+                if treadle > self.numTreadles - 1: #reached upper point - switch directions
+                    treadle = self.numTreadles - 2
+                    direction = 0
+            else:
+                treadle -= 1
+                if treadle < 0: #reached lower point - switch directions
+                    treadle = 1
+                    direction = 1
+        self.drawDown()
 
     def straightTreadling(self):
-	for t in range(t_end):
-	    self.treadlesAtEachTimeStep[t].set(t%numTreadles) #update radio button
-	self.drawDown()
+        for t in range(self.t_end):
+            self.treadlesAtEachTimeStep[t].set(t%self.numTreadles) #update radio button
+        self.drawDown()
 
     def inverseTreadling(self):
-	for t in range(t_end):
-	    currentTreadle = self.treadlesAtEachTimeStep[t].get()	
-	    self.treadlesAtEachTimeStep[t].set(numTreadles-1-currentTreadle) #update radio button
-	self.drawDown()
+        for t in range(self.t_end):
+            currentTreadle = self.treadlesAtEachTimeStep[t].get()
+            self.treadlesAtEachTimeStep[t].set(self.numTreadles-1-currentTreadle) #update radio button
+        self.drawDown()
 
 
 
     def drawDown(self):
 
-	threading = np.zeros((numShafts, numEnds))
-        for end in range(numEnds):
-	    threading[self.shaftsEndsAreOn[end].get(),end] = 1
+        threading = np.zeros((self.numShafts, self.numEnds))
+        for end in range(self.numEnds):
+            threading[self.shaftsEndsAreOn[end].get(),end] = 1
 
-	tieup = np.zeros((numShafts, numTreadles))
-        for treadle in range(numTreadles):
-	    for shaft in range(numShafts):
+        tieup = np.zeros((self.numShafts, self.numTreadles))
+        for treadle in range(self.numTreadles):
+            for shaft in range(self.numShafts):
                 tieup[shaft,treadle] = self.shaftsOnEachTreadle[treadle][shaft].get()
 
-	treadling = np.zeros((t_end, numTreadles))
-	for t in range(t_end):
-	    treadling[t,self.treadlesAtEachTimeStep[t].get()] = 1
-	
-        dd=np.zeros((t_end,numEnds))
-        for t in range(t_end): 
-	    dd[t,:] = self.weftColours[t].get() #unlifted threads show the weft's colour   
-	    treadle = treadling[t,:].tolist().index(1)
+        treadling = np.zeros((self.t_end, self.numTreadles))
+        for t in range(self.t_end):
+            treadling[t,self.treadlesAtEachTimeStep[t].get()] = 1
+
+        dd=np.zeros((self.t_end,self.numEnds))
+        for t in range(self.t_end):
+            dd[t,:] = self.weftColours[t].get() #unlifted threads show the weft's colour
+            treadle = treadling[t,:].tolist().index(1)
             shaftsLifted=tieup[:,treadle]
             for j in range(len(shaftsLifted)):
                 if shaftsLifted[j]==1:
-                    for i in range(numEnds):
+                    for i in range(self.numEnds):
                         if threading[j,i] == 1:
                             dd[t,i]=self.warpColours[i].get() #lifted threads show warp's colour
 
-	self.displayDrawdown(dd)
+        self.displayDrawdown(dd)
 
     def displayDrawdown(self,drawdown):
-	drawdown=np.array(drawdown*255,dtype=int)
-	data = np.repeat(np.repeat(drawdown, width_pick, axis=0), width_end, axis=1)
+        drawdown=np.array(drawdown*255,dtype=int)
+        data = np.repeat(np.repeat(drawdown, width_pick, axis=0), width_end, axis=1)
 
-	from PIL import Image, ImageTk
-        canvas = tk.Canvas(self.drawdownFrame, width=numEnds*width_end, height=t_end*width_pick)
-	canvas.place(x=-2,y=-2)
+        from PIL import Image, ImageTk
+        canvas = tk.Canvas(self.drawdownFrame, width=self.numEnds*width_end, height=self.t_end*width_pick)
+        canvas.place(x=-2,y=-2)
 
-	self.im=Image.fromstring('L', (data.shape[1],\
+        self.im=Image.fromstring('L', (data.shape[1],\
                         data.shape[0]), data.astype('b').tostring())
 
         self.imTk = ImageTk.PhotoImage(image=self.im)
