@@ -15,7 +15,7 @@ class WeavingDraft:
         self.threadingFrame = None
         self.treadlingFrame = None
         self.tieupFrame = None
-	self.drawdownFrame = None
+        self.drawdownFrame = None
 
         self.numEnds = numEnds
         self.numShafts = numShafts
@@ -30,6 +30,7 @@ class WeavingDraft:
         self.makeTieupOptions(win)
         self.makeGeneralOptions(win)
         self.makeDrawdownGUI(win)
+        self.makeAnimationDisplay(win)
 
         self.manageLayout(win)
 
@@ -85,7 +86,7 @@ class WeavingDraft:
     def makeTreadlingGUI(self,win):
         self.treadlesAtEachTimeStep = []
 
-	if self.treadlingFrame is None:
+        if self.treadlingFrame is None:
             self.treadlingFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
         else:
             for i in range(len(self.treadlingFrame.winfo_children())):
@@ -97,43 +98,44 @@ class WeavingDraft:
 
         labels = [];
         buttons = []
+        self.pickFrames = []
         for t in range(self.t_end):
-                tFrame = tk.Frame(self.treadlingFrame, borderwidth=1, relief=tk.RAISED)
-                tFrame.grid(row=t, column=0)
+            tFrame = tk.Frame(self.treadlingFrame, borderwidth=1, relief=tk.RAISED)
+            tFrame.grid(row=t, column=0)
+            self.pickFrames.append(tFrame)
+
+            #Allow for binary colour selection in weft
+            v = tk.IntVar(win)
+            cb = tk.Checkbutton(weftColoursFrame, text="", variable=v, \
+                command=self.drawDown, padx=7, pady=1, borderwidth=1, \
+                indicatoron=0, background='black', selectcolor='white')
+            v.set(1) #default weft to white, warp to black
+            cb.grid(row=t,column=0)
+            self.weftColours.append(v)
 
 
-                #Allow for binary colour selection in weft
-                v = tk.IntVar(win)
-                cb = tk.Checkbutton(weftColoursFrame, text="", variable=v, \
-                    command=self.drawDown, padx=7, pady=1, borderwidth=1, \
-                    indicatoron=0, background='black', selectcolor='white')
-                v.set(1) #default weft to white, warp to black
-                cb.grid(row=t,column=0)
-                self.weftColours.append(v)
+            v = tk.IntVar(win)
+            v.set(t%self.numTreadles) #selected by default
+            self.treadlesAtEachTimeStep.append(v)
+            for treadle in range(self.numTreadles):
+                if t == 0:
+                    label = str(treadle+1)
+                else:
+                    label = str(treadle+1)#""
+                rb = tk.Radiobutton(tFrame, text=label, variable=v, \
+                    value=treadle, command=self.drawDown, padx=0, pady=0, \
+                    borderwidth=1,indicatoron=0,width=2,selectcolor='black')
+                rb.grid(row=0, column=treadle)
+                buttons.append(rb)
 
-
-                v = tk.IntVar(win)
-                v.set(t%self.numTreadles) #selected by default
-                self.treadlesAtEachTimeStep.append(v)
-                for treadle in range(self.numTreadles):
-                    if t == 0:
-                        label = str(treadle+1)
-                    else:
-                        label = str(treadle+1)#""
-                    rb = tk.Radiobutton(tFrame, text=label, variable=v, \
-                        value=treadle, command=self.drawDown, padx=0, pady=0, \
-                        borderwidth=1,indicatoron=0,width=2,selectcolor='black')
-                    rb.grid(row=0, column=treadle)
-                    buttons.append(rb)
-
-                    label = tk.Label(tFrame, text=t+1, width=2, fg='red')
-                    label.grid(row=0,column=treadle+1)
+                label = tk.Label(tFrame, text=t+1, width=2, fg='red')
+                label.grid(row=0,column=treadle+1)
 
 
     def makeTieupGUI(self,win):
         self.shaftsOnEachTreadle = []
 
-	if self.tieupFrame is None:
+        if self.tieupFrame is None:
             self.tieupFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
         else:
             for i in range(len(self.tieupFrame.winfo_children())):
@@ -157,7 +159,7 @@ class WeavingDraft:
                     vars.append(v)
 
     def makeDrawdownGUI(self, win):
-	if self.drawdownFrame is None:
+        if self.drawdownFrame is None:
             self.drawdownFrame = tk.Frame(win, width=self.numEnds*width_end, height=self.t_end*width_pick)
             self.drawdownFrame.pack()
         else:
@@ -168,23 +170,24 @@ class WeavingDraft:
     def manageLayout(self, win):
         #put frames in a grid
         #left column
-        self.threadingFrame.grid(row=0, column=0)
-        self.drawdownFrame.grid(row=1, column=0, rowspan=3)
+        self.threadingFrame.grid(row=0, column=0, rowspan=2, sticky=tk.S)
+        self.drawdownFrame.grid(row=2, column=0, rowspan=3)
 
         #centre column
-        self.tieupFrame.grid(row=0, column=1,sticky=tk.S+tk.W)
-        self.treadlingFrame.grid(row=1, column=1, rowspan=3)
+        self.animationDisplayFrame.grid(row=0, column=1, sticky=tk.S)
+        self.tieupFrame.grid(row=1, column=1,sticky=tk.S+tk.W)
+        self.treadlingFrame.grid(row=2, column=1, rowspan=3)
 
         #right column
-        self.threadingOptionsFrame.grid(row=0,column=2)
-        self.tieupOptionsFrame.grid(row=1, column=2)
-        self.treadlingOptionsFrame.grid(row=2,column=2)
-        self.generalOptionsFrame.grid(row=3, column=2)
+        self.threadingOptionsFrame.grid(row=1,column=2)
+        self.tieupOptionsFrame.grid(row=2, column=2)
+        self.treadlingOptionsFrame.grid(row=3,column=2)
+        self.generalOptionsFrame.grid(row=4, column=2)
 
     def makeGeneralOptions(self,win):
         generalOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED, width=0)
 
-	# ends
+	    # ends
         label = tk.Label(generalOptionsFrame, text="# ends", width=0)
         label.grid(row=0,column=0)
         self.var_numEnds = tk.StringVar(win)
@@ -208,7 +211,7 @@ class WeavingDraft:
         e.grid(row=2,column=1)
         self.var_numTreadles.set(str(self.numTreadles))
 
-	# time
+	    # time
         label = tk.Label(generalOptionsFrame, text="# picks", width=0)
         label.grid(row=3,column=0)
         self.var_t_end = tk.StringVar(win)
@@ -219,7 +222,6 @@ class WeavingDraft:
         b = tk.Button(generalOptionsFrame, text="Update", command=self.updateGeneralOptions, width=0)
         b.grid(row=4,column=0,columnspan=2)
 
-
         self.generalOptionsFrame = generalOptionsFrame
 
     def updateGeneralOptions(self):
@@ -229,10 +231,103 @@ class WeavingDraft:
         self.t_end = int(self.var_t_end.get())
         
         self.makeThreadingGUI(self.win)
-	self.makeTreadlingGUI(self.win)
+        self.makeTreadlingGUI(self.win)
         self.makeTieupGUI(self.win)
         self.makeDrawdownGUI(self.win)
         self.drawDown()
+
+    def startAnimation(self):
+        self.animating = True
+        self.shaftsLiftedLabel.pack()
+        self.shaftsLiftedDisplay.pack()
+        self.animateLeftButton.pack(side=tk.LEFT)
+        self.animateRightButton.pack(side=tk.RIGHT)
+        self.animateButton.pack_forget()
+
+        #highlight initial pick
+        self.dehighlightPickFrame(self.pick_upTo)
+        self.pick_upTo = 0
+        self.highlightPickFrame(self.pick_upTo)
+        
+        self.var_currentShaftsLifted.set(self.getShaftsLifted(self.pick_upTo))
+
+        import threading
+        t = threading.Thread(target=self.listenForInputDuringAnimation)
+        t.start()
+
+    def finishAnimation(self):
+        self.shaftsLiftedLabel.pack_forget()
+        self.shaftsLiftedDisplay.pack_forget()
+        self.animateButton.pack()
+        self.animateLeftButton.pack_forget()
+        self.animateRightButton.pack_forget()
+
+    def listenForInputDuringAnimation(self):
+        import sys
+        from select import select
+        while(self.animating):
+            timeout = 0.1
+            rlist, _, _ = select([sys.stdin], [], [], timeout) # capture input (if available)
+            if rlist:
+                inp = sys.stdin.readline()
+                if inp.strip().lower() == 'b': # go back a pick
+                    self.goBackAPick()
+                else: # advance a pick
+                    self.advanceAPick()
+
+        self.finishAnimation()
+
+    def advanceAPick(self):
+        self.dehighlightPickFrame(self.pick_upTo)
+        self.pick_upTo += 1
+        if self.pick_upTo >= self.t_end:
+            self.animating = False
+            self.pick_upTo = self.t_end-1
+        else:
+            self.highlightPickFrame(self.pick_upTo)
+
+        self.var_currentShaftsLifted.set(self.getShaftsLifted(self.pick_upTo))
+
+
+    def goBackAPick(self):
+        self.dehighlightPickFrame(self.pick_upTo)
+        self.pick_upTo -= 1
+        if self.pick_upTo < 0:
+            self.animating = False
+            self.pick_upTo = 0
+        else:
+            self.highlightPickFrame(self.pick_upTo)
+
+        self.var_currentShaftsLifted.set(self.getShaftsLifted(self.pick_upTo))
+
+    def highlightPickFrame(self, t):
+        self.pickFrames[t].config(borderwidth=5)
+
+    def dehighlightPickFrame(self, t):
+        self.pickFrames[t].config(borderwidth=1)
+
+    def getShaftsLifted(self, t):
+        treadle = self.treadlesAtEachTimeStep[t].get() # which treadle should be pressed for this pick
+        shafts = self.tieup[:,treadle].tolist() # the shafts lifted by that treadle (binary)
+        shafts = [int(self.var_numShafts.get())-item for item in range(len(shafts)) if shafts[item]==1.0]
+        shafts.reverse() # the numbers of the shafts lifted (ascending)
+        return shafts
+
+    def makeAnimationDisplay(self,win): # display current status of animation (shafts lifted)
+        animationDisplayFrame = tk.Frame(win, borderwidth=0, relief=tk.FLAT)
+
+        self.shaftsLiftedLabel = tk.Label(animationDisplayFrame, text="Shafts lifted")
+        self.var_currentShaftsLifted = tk.StringVar(win)
+        self.shaftsLiftedDisplay = tk.Label(animationDisplayFrame, textvariable=self.var_currentShaftsLifted, fg="red", font=26)
+        self.animateLeftButton = tk.Button(animationDisplayFrame, text="<", command=self.goBackAPick, font=8, padx=0, pady=0)
+        self.animateRightButton = tk.Button(animationDisplayFrame, text=">", command=self.advanceAPick, font=8, padx=0, pady=0)
+
+        self.animateButton = tk.Button(animationDisplayFrame, text="Animate", command=self.startAnimation, 
+            width=0)
+        self.animateButton.pack()
+        self.pick_upTo = 0
+
+        self.animationDisplayFrame = animationDisplayFrame
         
     def makeTieupOptions(self,win):
         tieupOptionsFrame = tk.Frame(win, borderwidth=3, relief=tk.RAISED)
@@ -294,6 +389,8 @@ class WeavingDraft:
         f.close();
 
     def loadDraft(self):
+        self.animating = False
+
         f = tkFileDialog.askopenfile(defaultextension=".txt")
         if f is None:
             return
@@ -487,6 +584,7 @@ class WeavingDraft:
         for treadle in range(self.numTreadles):
             for shaft in range(self.numShafts):
                 tieup[shaft,treadle] = self.shaftsOnEachTreadle[treadle][shaft].get()
+        self.tieup = tieup
 
         treadling = np.zeros((self.t_end, self.numTreadles))
         for t in range(self.t_end):
