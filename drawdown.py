@@ -1,6 +1,7 @@
 
 
 import Tkinter as tk
+from Tkinter import *
 import tkFileDialog
 import numpy as np
 
@@ -8,9 +9,124 @@ width_end = 22   # pixel width of each rectangle in drawup
 width_pick = 20  # pixel height of each rectange in drawup
 
 
+
+class VerticalScrolledFrame(Frame):
+    """A pure Tkinter scrollable frame that actually works!
+
+    * Use the 'interior' attribute to place widgets inside the scrollable frame
+    * Construct and pack/place/grid normally
+    * This frame only allows vertical scrolling
+    
+    """
+    def __init__(self, parent, maxHeight, *args, **kw):
+        tk.Frame.__init__(self, parent, *args, **kw)            
+
+        # create a canvas object and a vertical scrollbar for scrolling it
+        vscrollbar = tk.Scrollbar(self, orient=VERTICAL)
+        vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
+        canvas = Canvas(self, bd=0, highlightthickness=0,
+                        yscrollcommand=vscrollbar.set)
+        canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
+        vscrollbar.config(command=canvas.yview)
+
+        # reset the view
+        canvas.xview_moveto(0)
+        canvas.yview_moveto(0)
+
+        # create a frame inside the canvas which will be scrolled with it
+        self.interior = interior = Frame(canvas)
+        interior_id = canvas.create_window(0, 0, window=interior,
+                                           anchor=NW)
+
+        # track changes to the canvas and frame width and sync them,
+        # also updating the scrollbar
+        def _configure_interior(event):
+            # update the scrollbars to match the size of the inner frame
+            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+            canvas.config(scrollregion="0 0 %s %s" % size)
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the canvas's width to fit the inner frame
+                canvas.config(width=interior.winfo_reqwidth())
+            desiredHeight = maxHeight#min(canvas.winfo_reqheight(), maxHeight)
+            if desiredHeight != canvas.winfo_height():
+                # update the canvas's height to fit the inner frame
+                canvas.config(height=desiredHeight)
+        interior.bind('<Configure>', _configure_interior)
+
+        def _configure_canvas(event):
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the inner frame's width to fill the canvas
+                canvas.itemconfigure(interior_id, width=canvas.winfo_width())
+        canvas.bind('<Configure>', _configure_canvas)
+
+
+        return
+
+
+
+class HorizontalScrolledFrame(Frame):
+    """A pure Tkinter scrollable frame that actually works!
+
+    * Use the 'interior' attribute to place widgets inside the scrollable frame
+    * Construct and pack/place/grid normally
+    * This frame only allows horizontal scrolling
+    
+    """
+    def __init__(self, parent, maxWidth, *args, **kw):
+        tk.Frame.__init__(self, parent, *args, **kw)            
+
+        # create a canvas object and a horizontal scrollbar for scrolling it
+        hscrollbar = tk.Scrollbar(self, orient=HORIZONTAL)
+        hscrollbar.pack(fill=X, side=TOP, expand=FALSE)
+        canvas = Canvas(self, bd=0, highlightthickness=0,
+                        xscrollcommand=hscrollbar.set)
+
+        canvas.pack(side=TOP, fill=BOTH, expand=TRUE)
+        hscrollbar.config(command=canvas.xview)
+
+        # reset the view
+        canvas.xview_moveto(0)
+        canvas.yview_moveto(0)
+
+        # create a frame inside the canvas which will be scrolled with it
+        self.interior = interior = Frame(canvas)
+        interior_id = canvas.create_window(0, 0, window=interior,
+                                           anchor=NW)
+
+        # track changes to the canvas and frame width and sync them,
+        # also updating the scrollbar
+        def _configure_interior(event):
+            # update the scrollbars to match the size of the inner frame
+            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+            canvas.config(scrollregion="0 0 %s %s" % size)
+            desiredWidth = min(size[0], maxWidth)
+            if desiredWidth != canvas.winfo_width():
+                # update the canvas's width to fit the inner frame
+                canvas.config(width=desiredWidth)
+            if interior.winfo_reqheight() != canvas.winfo_height():
+                # update the canvas's height to fit the inner frame
+                canvas.config(height=interior.winfo_reqheight())
+        interior.bind('<Configure>', _configure_interior)
+
+        def _configure_canvas(event):
+            '''
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the inner frame's width to fill the canvas
+                canvas.itemconfigure(interior_id, width=canvas.winfo_width())
+            '''
+            if interior.winfo_reqheight() != canvas.winfo_height():
+                # update the inner frame's height to fill the canvas
+                canvas.itemconfigure(interior_id, height=canvas.winfo_height())
+        canvas.bind('<Configure>', _configure_canvas)
+
+
+        return
+
 class WeavingDraft:
     def __init__(self, win, numEnds, numShafts, numTreadles, t_end):
         self.win = win
+
+        self.horizontalScrollFrame = HorizontalScrolledFrame(win, 1000)
 
         self.threadingFrame = None
         self.treadlingFrame = None
@@ -22,26 +138,34 @@ class WeavingDraft:
         self.numTreadles = numTreadles
         self.t_end = t_end
 
-        self.makeThreadingGUI(win)
+        self.makeThreadingGUI(self.horizontalScrollFrame.interior)
         self.makeTreadlingGUI(win)
         self.makeTieupGUI(win)
         self.makeThreadingOptions(win)
         self.makeTreadlingOptions(win)
         self.makeTieupOptions(win)
         self.makeGeneralOptions(win)
-        self.makeDrawdownGUI(win)
+        self.makeDrawdownGUI(self.horizontalScrollFrame.interior)
         self.makeAnimationDisplay(win)
 
-        self.manageLayout(win)
+        self.manageLayout()
 
         self.loadDraft()
         self.drawDown()
+
+        self.updateGUI()
+
+    def updateGUI(self):
+
+        import threading
+        t = threading.Thread(target=self.updateGUI)
+        t.start()
 
 
     def makeThreadingGUI(self,win):
         self.shaftsEndsAreOn = []
 
-	if self.threadingFrame is None:
+        if self.threadingFrame is None:
             self.threadingFrame = tk.Frame(win, borderwidth=1, relief=tk.RAISED)
         else:
             for i in range(len(self.threadingFrame.winfo_children())):
@@ -167,11 +291,16 @@ class WeavingDraft:
                 self.drawdownFrame.winfo_children()[0].destroy()
             self.drawdownFrame.config(width=self.numEnds*width_end, height=self.t_end*width_pick)
 
-    def manageLayout(self, win):
+    def manageLayout(self):
         #put frames in a grid
         #left column
-        self.threadingFrame.grid(row=0, column=0, rowspan=2, sticky=tk.S)
-        self.drawdownFrame.grid(row=2, column=0, rowspan=3)
+        self.horizontalScrollFrame.grid(row=0, column=0, rowspan=6, sticky=tk.N+tk.W)
+        self.threadingFrame.grid(row=0,column=0,sticky=tk.N)
+        self.drawdownFrame.grid(row=1,column=0,sticky=tk.S)
+        #self.threadingFrame.pack(side=tk.TOP)
+        #self.drawdownFrame.pack(side=tk.BOTTOM)
+        #self.threadingFrame.grid(row=0, column=0, rowspan=2, sticky=tk.S)
+        #self.drawdownFrame.grid(row=2, column=0, rowspan=3)
 
         #centre column
         self.animationDisplayFrame.grid(row=0, column=1, sticky=tk.S)
@@ -618,11 +747,37 @@ class WeavingDraft:
         canvas.create_image(0,0,image=self.imTk,anchor=tk.NW)
 
 
-mw = tk.Tk()
+
+
+
+
+
+
+
+
+
+
+
+
+master = tk.Tk()
+'''
+scrollbar = tk.Scrollbar(master)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+listbox = tk.Listbox(master, yscrollcommand=scrollbar.set)
+for i in range(1000):
+    listbox.insert(tk.END, str(i))
+listbox.pack(side=tk.LEFT, fill=tk.BOTH)
+'''
+
+
+scrollFrame = VerticalScrolledFrame(master, 2500)
+scrollFrame.pack()
+
 numEnds = 20
 numShafts = 4
 numTreadles = 10
 t_end = 20
-app = WeavingDraft(mw, numEnds, numShafts, numTreadles, t_end)
-mw.mainloop()
+app = WeavingDraft(scrollFrame.interior, numEnds, numShafts, numTreadles, t_end)
+master.mainloop()
 
