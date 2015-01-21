@@ -366,6 +366,12 @@ class WeavingDraft:
         self.makeDrawdownGUI(self.win)
         self.drawDown()
 
+    def writeGeneralOptions(self):
+        self.var_numEnds.set(self.numEnds)
+        self.var_numShafts.set(self.numShafts)
+        self.var_numTreadles.set(self.numTreadles)
+        self.var_t_end.set(self.t_end)
+
     def startTreadlingAnimation(self):
         self.animatingTreadling = True
         self.shaftsLiftedLabel.pack()
@@ -662,10 +668,7 @@ class WeavingDraft:
             f.close();
 
 
-            self.var_numEnds.set(numEnds)
-            self.var_numShafts.set(numShafts)
-            self.var_numTreadles.set(numTreadles)
-            self.var_t_end.set(t_end)
+            self.writeGeneralOptions()
             self.drawDown()
 
         except:
@@ -851,7 +854,7 @@ listbox.pack(side=tk.LEFT, fill=tk.BOTH)
 '''
 
 
-scrollFrame = VerticalScrolledFrame(master, 2500)
+scrollFrame = VerticalScrolledFrame(master, 800)
 scrollFrame.pack()
 
 numEnds = 20
