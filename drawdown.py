@@ -174,12 +174,13 @@ class WeavingDraft:
         warpColoursFrame = tk.Frame(self.threadingFrame,borderwidth=0)
         warpColoursFrame.grid(row=0, columnspan=self.numEnds)
         self.warpColours = []
-
+        self.endFrames = []
 
         buttons = []
         for end in range(self.numEnds):
                 endFrame = tk.Frame(self.threadingFrame, borderwidth=1, relief=tk.FLAT)
                 endFrame.grid(row=1, column=end)
+                self.endFrames.append(endFrame)
 
                 v = tk.IntVar(win)
                 cb = tk.Checkbutton(warpColoursFrame, text="", variable=v, \
@@ -365,13 +366,14 @@ class WeavingDraft:
         self.makeDrawdownGUI(self.win)
         self.drawDown()
 
-    def startAnimation(self):
-        self.animating = True
+    def startTreadlingAnimation(self):
+        self.animatingTreadling = True
         self.shaftsLiftedLabel.pack()
         self.shaftsLiftedDisplay.pack()
         self.animateLeftButton.pack(side=tk.LEFT)
         self.animateRightButton.pack(side=tk.RIGHT)
-        self.animateButton.pack_forget()
+        self.animateThreadingButton.pack_forget()
+        self.animateTreadlingButton.pack_forget()
 
         #highlight initial pick
         self.dehighlightPickFrame(self.pick_upTo)
@@ -384,25 +386,52 @@ class WeavingDraft:
         t = threading.Thread(target=self.listenForInputDuringAnimation)
         t.start()
 
+    def startThreadingAnimation(self):
+        self.animatingThreading = True
+        self.shaftsLiftedLabel.pack()
+        self.shaftsLiftedDisplay.pack()
+        self.animateLeftButton.pack(side=tk.LEFT)
+        self.animateRightButton.pack(side=tk.RIGHT)
+        self.animateThreadingButton.pack_forget()
+        self.animateTreadlingButton.pack_forget()
+
+        #highlight initial end
+        self.dehighlightEndFrame(self.end_upTo)
+        self.end_upTo = 0
+        self.highlightEndFrame(self.end_upTo)
+        
+        self.var_currentShaftsLifted.set(self.getShaftThreadedOn(self.end_upTo))
+
+        import threading
+        t = threading.Thread(target=self.listenForInputDuringAnimation)
+        t.start()
+
     def finishAnimation(self):
         self.shaftsLiftedLabel.pack_forget()
         self.shaftsLiftedDisplay.pack_forget()
-        self.animateButton.pack()
+        self.animateThreadingButton.pack()
+        self.animateTreadlingButton.pack()
         self.animateLeftButton.pack_forget()
         self.animateRightButton.pack_forget()
 
     def listenForInputDuringAnimation(self):
         import sys
         from select import select
-        while(self.animating):
+        while(self.animatingThreading or self.animatingTreadling):
             timeout = 0.1
             rlist, _, _ = select([sys.stdin], [], [], timeout) # capture input (if available)
             if rlist:
                 inp = sys.stdin.readline()
-                if inp.strip().lower() == 'b': # go back a pick
-                    self.goBackAPick()
-                else: # advance a pick
-                    self.advanceAPick()
+                if self.animatingTreadling:
+                    if inp.strip().lower() == 'b': # go back a pick
+                        self.goBackAPick()
+                    else: # advance a pick
+                        self.advanceAPick()
+                else:
+                    if inp.strip().lower() == 'b': # go back an end
+                        self.goBackAnEnd()
+                    else: # advance an end
+                        self.advanceAnEnd()                    
 
         self.finishAnimation()
 
@@ -410,7 +439,7 @@ class WeavingDraft:
         self.dehighlightPickFrame(self.pick_upTo)
         self.pick_upTo += 1
         if self.pick_upTo >= self.t_end:
-            self.animating = False
+            self.animatingTreadling = False
             self.pick_upTo = self.t_end-1
         else:
             self.highlightPickFrame(self.pick_upTo)
@@ -422,18 +451,51 @@ class WeavingDraft:
         self.dehighlightPickFrame(self.pick_upTo)
         self.pick_upTo -= 1
         if self.pick_upTo < 0:
-            self.animating = False
+            self.animatingTreadling = False
             self.pick_upTo = 0
         else:
             self.highlightPickFrame(self.pick_upTo)
 
         self.var_currentShaftsLifted.set(self.getShaftsLifted(self.pick_upTo))
 
+
+    def advanceAnEnd(self):
+        self.dehighlightEndFrame(self.end_upTo)
+        self.end_upTo += 1
+        if self.end_upTo >= self.numEnds:
+            self.animatingThreading = False
+            self.end_upTo = self.numEnds-1
+        else:
+            self.highlightEndFrame(self.end_upTo)
+
+        self.var_currentShaftsLifted.set(self.getShaftThreadedOn(self.end_upTo))
+
+
+    def goBackAnEnd(self):
+        self.dehighlightEndFrame(self.end_upTo)
+        self.end_upTo -= 1
+        if self.end_upTo < 0:
+            self.animatingThreading = False
+            self.end_upTo = 0
+        else:
+            self.highlightEndFrame(self.end_upTo)
+
+        self.var_currentShaftsLifted.set(self.getShaftThreadedOn(self.end_upTo))
+
     def highlightPickFrame(self, t):
         self.pickFrames[t].config(borderwidth=5)
 
     def dehighlightPickFrame(self, t):
         self.pickFrames[t].config(borderwidth=1)
+
+    def highlightEndFrame(self, t):
+        self.endFrames[self.numEnds-1-t].config(borderwidth=5, relief=tk.RAISED)
+
+    def dehighlightEndFrame(self, t):
+        self.endFrames[self.numEnds-1-t].config(borderwidth=1, relief=tk.FLAT)
+
+    def getShaftThreadedOn(self, t):
+        return self.numShafts - self.shaftsEndsAreOn[self.numEnds-1-t].get()
 
     def getShaftsLifted(self, t):
         treadle = self.treadlesAtEachTimeStep[t].get() # which treadle should be pressed for this pick
@@ -442,18 +504,35 @@ class WeavingDraft:
         shafts.reverse() # the numbers of the shafts lifted (ascending)
         return shafts
 
+    def advanceButtonPressed(self):
+        if self.animatingThreading:
+            self.advanceAnEnd()
+        else:
+            self.advanceAPick()
+
+    def goBackButtonPressed(self):
+        if self.animatingThreading:
+            self.goBackAnEnd()
+        else:
+            self.goBackAPick()
+
     def makeAnimationDisplay(self,win): # display current status of animation (shafts lifted)
         animationDisplayFrame = tk.Frame(win, borderwidth=0, relief=tk.FLAT)
 
-        self.shaftsLiftedLabel = tk.Label(animationDisplayFrame, text="Shafts lifted")
+        self.shaftsLiftedLabel = tk.Label(animationDisplayFrame, text="Shaft(s):")
         self.var_currentShaftsLifted = tk.StringVar(win)
         self.shaftsLiftedDisplay = tk.Label(animationDisplayFrame, textvariable=self.var_currentShaftsLifted, fg="red", font=26)
-        self.animateLeftButton = tk.Button(animationDisplayFrame, text="<", command=self.goBackAPick, font=8, padx=0, pady=0)
-        self.animateRightButton = tk.Button(animationDisplayFrame, text=">", command=self.advanceAPick, font=8, padx=0, pady=0)
+        self.animateLeftButton = tk.Button(animationDisplayFrame, text="<", command=self.goBackButtonPressed, font=8, padx=0, pady=0)
+        self.animateRightButton = tk.Button(animationDisplayFrame, text=">", command=self.advanceButtonPressed, font=8, padx=0, pady=0)
 
-        self.animateButton = tk.Button(animationDisplayFrame, text="Animate", command=self.startAnimation, 
+        self.animateThreadingButton = tk.Button(animationDisplayFrame, text="Animate threading", command=self.startThreadingAnimation, 
             width=0)
-        self.animateButton.pack()
+        self.animateThreadingButton.pack()
+        self.end_upTo = 0
+
+        self.animateTreadlingButton = tk.Button(animationDisplayFrame, text="Animate treadling", command=self.startTreadlingAnimation, 
+            width=0)
+        self.animateTreadlingButton.pack()
         self.pick_upTo = 0
 
         self.animationDisplayFrame = animationDisplayFrame
@@ -518,7 +597,8 @@ class WeavingDraft:
         f.close();
 
     def loadDraft(self):
-        self.animating = False
+        self.animatingTreadling = False
+        self.animatingThreading = False
 
         f = tkFileDialog.askopenfile(defaultextension=".txt")
         if f is None:
