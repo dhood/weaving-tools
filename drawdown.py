@@ -1,5 +1,6 @@
 
 
+import PIL.Image, PIL.ImageTk
 import Tkinter as tk
 from Tkinter import *
 import tkFileDialog
@@ -819,14 +820,13 @@ class WeavingDraft:
         drawdown=np.array(drawdown*255,dtype=int)
         data = np.repeat(np.repeat(drawdown, width_pick, axis=0), width_end, axis=1)
 
-        from PIL import Image, ImageTk
         canvas = tk.Canvas(self.drawdownFrame, width=self.numEnds*width_end, height=self.t_end*width_pick)
         canvas.place(x=-2,y=-2)
 
-        self.im=Image.fromstring('L', (data.shape[1],\
+        self.im=PIL.Image.fromstring('L', (data.shape[1],\
                         data.shape[0]), data.astype('b').tostring())
 
-        self.imTk = ImageTk.PhotoImage(image=self.im)
+        self.imTk = PIL.ImageTk.PhotoImage(image=self.im)
         canvas.create_image(0,0,image=self.imTk,anchor=tk.NW)
 
 
