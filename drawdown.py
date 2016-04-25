@@ -1,4 +1,4 @@
-
+import arduino_comm
 
 import PIL.Image, PIL.ImageTk
 import Tkinter as tk
@@ -9,7 +9,8 @@ import numpy as np
 width_end = 22   # pixel width of each rectangle in drawup
 width_pick = 20  # pixel height of each rectange in drawup
 
-
+useArduino = True
+arduinoComm = None
 
 class VerticalScrolledFrame(Frame):
     """A pure Tkinter scrollable frame that actually works!
@@ -151,8 +152,16 @@ class WeavingDraft:
 
         self.manageLayout()
 
+        if useArduino:
+            global arduinoComm
+            arduinoComm = arduino_comm.ArduinoComm()
+
+        # load the draft while waiting for the arduino to reset (if connected)
         self.loadDraft()
         self.drawDown()
+
+        if useArduino:
+            self.initialiseShaftPositions()
 
         self.updateGUI()
 
@@ -387,11 +396,24 @@ class WeavingDraft:
         self.pick_upTo = 0
         self.highlightPickFrame(self.pick_upTo)
         
-        self.var_currentShaftsLifted.set(self.getShaftsLifted(self.pick_upTo))
+        self.shaftsLiftedChanged()
 
         import threading
         t = threading.Thread(target=self.listenForInputDuringAnimation)
         t.start()
+
+    def shaftsLiftedChanged(self):
+        shaftsLifted = self.getShaftsLifted(self.pick_upTo)
+        self.var_currentShaftsLifted.set(shaftsLifted)
+        if useArduino:
+            for shaft in range(1, self.numShafts+1):
+                setting = 1 if shaft in shaftsLifted else 0
+                arduinoComm.sendShaftSetting(shaft-1, setting)
+
+    def initialiseShaftPositions(self):
+        if useArduino and arduinoComm:
+            for shaft in range(1, self.numShafts+1):
+                arduinoComm.sendShaftSetting(shaft-1, 0)
 
     def startThreadingAnimation(self):
         self.animatingThreading = True
@@ -451,7 +473,7 @@ class WeavingDraft:
         else:
             self.highlightPickFrame(self.pick_upTo)
 
-        self.var_currentShaftsLifted.set(self.getShaftsLifted(self.pick_upTo))
+        self.shaftsLiftedChanged()
 
 
     def goBackAPick(self):
@@ -463,7 +485,7 @@ class WeavingDraft:
         else:
             self.highlightPickFrame(self.pick_upTo)
 
-        self.var_currentShaftsLifted.set(self.getShaftsLifted(self.pick_upTo))
+        self.shaftsLiftedChanged()
 
 
     def advanceAnEnd(self):
@@ -828,11 +850,6 @@ class WeavingDraft:
 
         self.imTk = PIL.ImageTk.PhotoImage(image=self.im)
         canvas.create_image(0,0,image=self.imTk,anchor=tk.NW)
-
-
-
-
-
 
 
 
