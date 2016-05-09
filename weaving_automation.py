@@ -11,7 +11,7 @@ if __name__ == '__main__':
         arduinoComm = arduino_comm.ArduinoComm()
 
     lift_pattern_filename = 'lift_pattern.txt'
-    liftPattern = lift_pattern_io.read_lift_pattern(lift_pattern_filename)
+    liftPattern = lift_pattern_io.read_lift_pattern(filename=lift_pattern_filename)
 
     numShafts = max(max(liftPattern))
 
